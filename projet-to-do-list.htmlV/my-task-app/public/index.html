@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>To-Do List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: #f4f7fc;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1 1 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #5a67d8;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #434190;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        .task {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #edf2f7;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-text {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .task-desc {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .complete-btn {
+            background-color: #38a169;
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .complete-btn:hover {
+            background-color: #2f855a;
+        }
+
+        .delete-btn {
+            background-color: #e53e3e;
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background-color: #c53030;
+        }
+
+        .done-label {
+            font-weight: bold;
+            color: #48bb78;
+            margin-left: 10px;
+        }
+
+        .notification {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2f855a;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* NOVA CLASSE PARA TAREFA CONCLUÍDA */
+        .task-completed {
+            background-color: #c6f6d5; /* verde clarinho */
+            color: #22543d;
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>To-Do List</h1>
+    <div id="notification" class="notification">✔️ Tarefa marcada como concluída!</div>
+    <form id="taskForm">
+        <input type="text" id="title" placeholder="Título da tarefa" required>
+        <input type="text" id="description" placeholder="Descrição da tarefa" required>
+        <button type="submit">Adicionar Tarefa</button>
+    </form>
+    <ul id="taskList"></ul>
+</div>
+
+<script>
+    const BASE_URL = "http://localhost:8080/tasks";
+
+    function showNotification(message) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 2000);
+    }
+
+    function loadTasks() {
+        fetch(BASE_URL)
+            .then(response => response.json())
+            .then(tasks => {
+                const taskList = document.getElementById('taskList');
+                taskList.innerHTML = '';
+
+                tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.className = 'task';
+
+                    // Aqui que pintamos a tarefa de verde se estiver concluída
+                    if (task.completed) {
+                        li.classList.add('task-completed');
+                    }
+
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'task-text';
+
+                    const title = document.createElement('span');
+                    title.className = 'task-title';
+                    title.textContent = task.title;
+
+                    const description = document.createElement('span');
+                    description.className = 'task-desc';
+                    description.textContent = task.description;
+
+                    textDiv.appendChild(title);
+                    textDiv.appendChild(description);
+                    li.appendChild(textDiv);
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'task-actions';
+
+                    if (task.completed) {
+                        const doneLabel = document.createElement('span');
+                        doneLabel.textContent = '✅ Concluída';
+                        doneLabel.className = 'done-label';
+                        actionsDiv.appendChild(doneLabel);
+                    } else {
+                        const completeBtn = document.createElement('button');
+                        completeBtn.textContent = 'Concluir';
+                        completeBtn.className = 'complete-btn';
+                        completeBtn.onclick = () => completeTask(task.id);
+                        actionsDiv.appendChild(completeBtn);
+                    }
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Excluir';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.onclick = () => deleteTask(task.id);
+                    actionsDiv.appendChild(deleteBtn);
+
+                    li.appendChild(actionsDiv);
+                    taskList.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Erro ao carregar tarefas:', error));
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+
+        const task = { title, description, completed: false };
+
+        fetch(BASE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(task)
+        })
+            .then(response => response.json())
+            .then(() => {
+                loadTasks();
+                document.getElementById('taskForm').reset();
+            })
+            .catch(error => console.error('Erro ao adicionar tarefa:', error));
+    });
+
+    function completeTask(id) {
+        fetch(`${BASE_URL}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: true })
+        })
+            .then(() => {
+                loadTasks();
+                showNotification('✔️ Tarefa marcada como concluída!');
+            })
+            .catch(error => console.error('Erro ao concluir tarefa:', error));
+    }
+
+    function deleteTask(id) {
+        fetch(`${BASE_URL}/${id}`, {
+            method: 'DELETE'
+        })
+            .then(() => {
+                loadTasks();
+                showNotification('🗑️ Tarefa excluída!');
+            })
+            .catch(error => console.error('Erro ao excluir tarefa:', error));
+    }
+
+    loadTasks();
+</script>
+</body>
+</html>
